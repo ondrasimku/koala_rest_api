@@ -1,0 +1,26 @@
+version: '3.8'
+services:
+  koala-postgres:
+    image: postgres:16-alpine
+    ports:
+      - 5432:5432
+    volumes:
+      - koala-postgres-volume:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_PASSWORD=Password123
+      - POSTGRES_USER=arthur
+      - POSTGRES_DB=galaxy
+
+  koala-character-rest-api:
+    build: .
+    ports:
+      - 8000:80
+    volumes:
+      - ./:/var/www/
+      - /var/www/vendor
+      - /var/www/var/cache
+    depends_on:
+      - koala-postgres
+
+volumes:
+  koala-postgres-volume:

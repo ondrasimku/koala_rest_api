@@ -1,0 +1,64 @@
+monolog:
+    channels:
+        - deprecation # Deprecations are logged in the dedicated "deprecation" channel when it exists
+
+# In dev environment, we log everything to the /var/log/dev.log and also to the php://stdout excluding doctrine and events
+when@dev:
+    monolog:
+        handlers:
+            main:
+                type: stream
+                path: "%kernel.logs_dir%/%kernel.environment%.log"
+                level: debug
+                formatter: monolog.formatter.json
+            console_debug_output:
+                type: stream
+                path: php://stdout
+                channels: ["!event", "!doctrine", "!deprecation"]
+                level: debug
+                formatter: monolog.formatter.json
+            #console_debug_doctrine_output:
+            #    type: stream
+            #    path: php://stdout
+            #    channels: [ "doctrine" ]
+            #    level: debug
+
+# In test environment we log only when error occurs using the fingers_crossed
+when@test:
+    monolog:
+        handlers:
+            main:
+                type: fingers_crossed
+                action_level: error
+                handler: nested
+                excluded_http_codes: [404, 405]
+                channels: ["!event"]
+            nested:
+                type: stream
+                path: "%kernel.logs_dir%/%kernel.environment%.log"
+                level: debug
+# In production environment we log using fingers_crossed to the /var/log/prod.log
+# We also log any log with error level ERROR to the php://stderr
+when@prod:
+    monolog:
+        handlers:
+            main:
+                type: fingers_crossed # Log every log level only when action_level level error occurred
+                action_level: error # Log only when error level occurred
+                handler: production_file_log # Handler the use when error occurred
+                excluded_http_codes: [404, 405]
+                buffer_size: 50 # How many messages should be saved? Prevent memory leaks
+            production_file_log: # We log errors to /var/log/prod.log
+                type: stream
+                path: "%kernel.logs_dir%/%kernel.environment%.log"
+                level: debug
+                formatter: monolog.formatter.json
+            production_console_output: # We also log errors to the stderr
+                type: stream
+                path: php://stderr
+                level: error
+                formatter: monolog.formatter.json
+            console: # We want to log symfony CLI console command logs to the console
+                type: console
+                process_psr_3_messages: false
+                channels: ["!event", "!doctrine"]
